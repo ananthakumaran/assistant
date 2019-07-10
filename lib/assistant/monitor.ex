@@ -44,10 +44,6 @@ defmodule Assistant.Monitor do
             mrs,
             &match?(%{"merge_status" => "can_be_merged"}, &1)
           )
-          |> Enum.map(fn mr ->
-            Logger.debug("Eligible for merge: #{mr["title"]}")
-            mr
-          end)
           |> Enum.filter(fn mr ->
             Enum.map(mr["labels"], &String.downcase/1)
             |> Enum.member?("reviewed")

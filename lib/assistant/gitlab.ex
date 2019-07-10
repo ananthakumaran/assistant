@@ -44,7 +44,16 @@ defmodule Assistant.Gitlab do
       Tesla.Middleware.JSON
     ]
 
-    adapter = {Tesla.Adapter.Hackney, [recv_timeout: 30_000]}
+    proxy = Application.get_env(:assistant, :proxy)
+
+    proxy_options =
+      if proxy do
+        [proxy: proxy]
+      else
+        []
+      end
+
+    adapter = {Tesla.Adapter.Hackney, [recv_timeout: 30_000] ++ proxy_options}
     Tesla.client(middlewares, adapter)
   end
 end
