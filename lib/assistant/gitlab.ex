@@ -6,6 +6,11 @@ defmodule Assistant.Gitlab do
     |> response
   end
 
+  def cancel_merge_when_pipeline_succeeds(project_id, id) do
+    Tesla.put(client(), "/projects/#{project_id}/merge_requests/#{id}/merge", "")
+    |> response
+  end
+
   def rebase_merge_request(project_id, id) do
     Tesla.put(client(), "/projects/#{project_id}/merge_requests/#{id}/rebase", "")
     |> response

@@ -20,6 +20,11 @@ defmodule Assistant.Monitor do
     {:noreply, interval}
   end
 
+  def handle_info(message, interval) do
+    Logger.warn("Unexpected message: #{inspect(message)}")
+    {:noreply, interval}
+  end
+
   defp schedule_sync(delay) do
     Logger.debug("Sleeping for #{delay} seconds")
     Process.send_after(self(), :sync, delay * 1000)
@@ -37,32 +42,17 @@ defmodule Assistant.Monitor do
   defp process_open_merge_requests(project) do
     Logger.info("Fetching merge requests for #{project["name"]}")
 
-    eligible_mrs =
-      case Gitlab.merge_requests(project["id"], state: "opened", wip: "no") do
-        {:ok, mrs} ->
-          Enum.filter(
-            mrs,
-            &match?(%{"merge_status" => "can_be_merged"}, &1)
-          )
-          |> Enum.filter(fn mr ->
-            Enum.map(mr["labels"], &String.downcase/1)
-            |> Enum.member?("reviewed")
-          end)
-          |> Enum.flat_map(fn mr ->
-            Logger.debug("Eligible for merge: #{mr["title"]}")
+    eligible_mrs = fetch_eligible_mrs(project)
 
-            case Gitlab.merge_request(mr["target_project_id"], mr["iid"],
-                   include_diverged_commits_count: "true",
-                   include_rebase_in_progress: "true"
-                 ) do
-              {:ok, mr} -> [mr]
-              :error -> []
-            end
-          end)
-
-        :error ->
-          []
-      end
+    cancel_automerge =
+      Enum.find(
+        eligible_mrs,
+        &match?(
+          %{"diverged_commits_count" => diverged_commits, "merge_when_pipeline_succeeds" => true}
+          when diverged_commits > 0,
+          &1
+        )
+      )
 
     waiting_for_pipeline =
       Enum.find(
@@ -97,6 +87,11 @@ defmodule Assistant.Monitor do
       )
 
     cond do
+      cancel_automerge != nil ->
+        mr = cancel_automerge
+        Logger.info("Cancelling auto merge: #{waiting_for_pipeline["title"]}")
+        Gitlab.cancel_merge_when_pipeline_succeeds(mr["target_project_id"], mr["iid"])
+
       waiting_for_pipeline != nil ->
         Logger.info("Waiting for pipeline to finish: #{waiting_for_pipeline["title"]}")
 
@@ -122,6 +117,34 @@ defmodule Assistant.Monitor do
     end
 
     :ok
+  end
+
+  defp fetch_eligible_mrs(project) do
+    case Gitlab.merge_requests(project["id"], state: "opened", wip: "no") do
+      {:ok, mrs} ->
+        Enum.filter(
+          mrs,
+          &match?(%{"merge_status" => "can_be_merged"}, &1)
+        )
+        |> Enum.filter(fn mr ->
+          Enum.map(mr["labels"], &String.downcase/1)
+          |> Enum.member?("reviewed")
+        end)
+        |> Enum.flat_map(fn mr ->
+          Logger.debug("Eligible for merge: #{mr["title"]}")
+
+          case Gitlab.merge_request(mr["target_project_id"], mr["iid"],
+                 include_diverged_commits_count: "true",
+                 include_rebase_in_progress: "true"
+               ) do
+            {:ok, mr} -> [mr]
+            :error -> []
+          end
+        end)
+
+      :error ->
+        []
+    end
   end
 
   defp fetch_projects() do
