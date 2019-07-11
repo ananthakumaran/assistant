@@ -2,8 +2,8 @@
 
 Gitlab provides a feature called [semi-linear history merge
 requests](https://docs.gitlab.com/ee/user/project/merge_requests/#semi-linear-history-merge-requests)
-which only allows fast forwardable merge. This ensures the target branch
-is always green.
+which only allows fast forwardable merge. This ensures that the target
+branch is always green.
 
 If you have a mono repo or a repo with lot of committers, merging a
 reviewed MR into master branch can get tedious. As only one MR can be
