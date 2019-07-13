@@ -89,7 +89,8 @@ defmodule Assistant.Monitor do
     cond do
       cancel_automerge != nil ->
         mr = cancel_automerge
-        Logger.info("Cancelling auto merge: #{waiting_for_pipeline["title"]}")
+        Logger.info("Cancelling auto merge: #{mr["title"]}")
+
         Gitlab.cancel_merge_when_pipeline_succeeds(mr["target_project_id"], mr["iid"])
 
       waiting_for_pipeline != nil ->

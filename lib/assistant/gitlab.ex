@@ -7,7 +7,11 @@ defmodule Assistant.Gitlab do
   end
 
   def cancel_merge_when_pipeline_succeeds(project_id, id) do
-    Tesla.put(client(), "/projects/#{project_id}/merge_requests/#{id}/merge", "")
+    Tesla.post(
+      client(),
+      "/projects/#{project_id}/merge_requests/#{id}/cancel_merge_when_pipeline_succeeds",
+      ""
+    )
     |> response
   end
 
@@ -32,7 +36,7 @@ defmodule Assistant.Gitlab do
   end
 
   def response({:ok, %Tesla.Env{body: body, status: status}})
-      when status in [200, 202] do
+      when status in [200, 201, 202] do
     {:ok, body}
   end
 
