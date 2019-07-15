@@ -141,6 +141,9 @@ defmodule Assistant.Monitor do
                 %{"pipeline" => %{"status" => "failed"}} ->
                   []
 
+                %{"head_pipeline" => %{"status" => "failed"}} ->
+                  []
+
                 _ ->
                   Logger.debug("Eligible for merge: #{mr["title"]}")
 
