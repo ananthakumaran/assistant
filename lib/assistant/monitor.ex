@@ -132,14 +132,23 @@ defmodule Assistant.Monitor do
           |> Enum.member?("reviewed")
         end)
         |> Enum.flat_map(fn mr ->
-          Logger.debug("Eligible for merge: #{mr["title"]}")
-
           case Gitlab.merge_request(mr["target_project_id"], mr["iid"],
                  include_diverged_commits_count: "true",
                  include_rebase_in_progress: "true"
                ) do
-            {:ok, mr} -> [mr]
-            :error -> []
+            {:ok, mr} ->
+              case mr do
+                %{"pipeline" => %{"status" => "failed"}} ->
+                  []
+
+                _ ->
+                  Logger.debug("Eligible for merge: #{mr["title"]}")
+
+                  [mr]
+              end
+
+            :error ->
+              []
           end
         end)
 
