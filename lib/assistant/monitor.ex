@@ -42,7 +42,9 @@ defmodule Assistant.Monitor do
   defp process_open_merge_requests(project) do
     Logger.info("Fetching merge requests for #{project["name"]}")
 
-    eligible_mrs = fetch_eligible_mrs(project)
+    eligible_mrs =
+      fetch_eligible_mrs(project)
+      |> Enum.shuffle()
 
     cancel_automerge =
       Enum.find(
