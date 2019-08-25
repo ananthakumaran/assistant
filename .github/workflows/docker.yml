@@ -6,7 +6,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Login
-      run: docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
+      run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
     - name: Build
       run: docker build . --file Dockerfile --tag ananthakumaran/assistant --tag ananthakumaran/assistant:$GITHUB_SHA
     - name: Push latest
