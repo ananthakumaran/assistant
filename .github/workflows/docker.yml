@@ -1,0 +1,15 @@
+name: Docker Release
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Login
+      run: docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
+    - name: Build
+      run: docker build . --file Dockerfile --tag ananthakumaran/assistant --tag ananthakumaran/assistant:$GITHUB_SHA
+    - name: Push latest
+      run: docker push ananthakumaran/assistant
+    - name: Push version
+      run: docker push ananthakumaran/assistant:$GITHUB_SHA
