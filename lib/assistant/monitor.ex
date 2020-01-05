@@ -130,6 +130,12 @@ defmodule Assistant.Monitor do
           &match?(%{"merge_status" => "can_be_merged"}, &1)
         )
         |> Enum.filter(fn mr ->
+          # These fields are only available in the lastest version,
+          # for older version don't consider them
+          Map.get(mr, "blocking_discussions_resolved", true) &&
+            !Map.get(mr, "has_conflicts", false)
+        end)
+        |> Enum.filter(fn mr ->
           Enum.map(mr["labels"], &String.downcase/1)
           |> Enum.member?("reviewed")
         end)
