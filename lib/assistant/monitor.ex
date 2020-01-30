@@ -123,7 +123,7 @@ defmodule Assistant.Monitor do
   end
 
   defp fetch_eligible_mrs(project) do
-    case Gitlab.merge_requests(project["id"], state: "opened", wip: "no") do
+    case Gitlab.merge_requests(project["id"], state: "opened", wip: "no", per_page: "100") do
       {:ok, mrs} ->
         Enum.filter(
           mrs,
