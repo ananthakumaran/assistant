@@ -68,10 +68,23 @@ defmodule Assistant.Monitor do
         &match?(%{"rebase_in_progress" => true}, &1)
       )
 
+    checking_for_merge_status =
+      Enum.find(
+        eligible_mrs,
+        &match?(%{"merge_status" => "checking"}, &1)
+      )
+
     can_merge =
       Enum.find(
         eligible_mrs,
-        &match?(%{"diverged_commits_count" => 0, "merge_when_pipeline_succeeds" => false}, &1)
+        &match?(
+          %{
+            "merge_status" => "can_be_merged",
+            "diverged_commits_count" => 0,
+            "merge_when_pipeline_succeeds" => false
+          },
+          &1
+        )
       )
 
     can_rebase =
@@ -100,6 +113,11 @@ defmodule Assistant.Monitor do
 
       rebase_in_progress != nil ->
         Logger.info("Waiting for rebase to finish: #{rebase_in_progress["title"]}")
+
+      checking_for_merge_status != nil ->
+        Logger.info(
+          "Waiting for merge_status to be updated: #{checking_for_merge_status["title"]}"
+        )
 
       can_merge != nil ->
         mr = can_merge
@@ -130,15 +148,16 @@ defmodule Assistant.Monitor do
            with_merge_status_recheck: "true"
          ) do
       {:ok, mrs} ->
-        Enum.filter(
-          mrs,
-          &match?(%{"merge_status" => "can_be_merged"}, &1)
-        )
-        |> Enum.filter(fn mr ->
-          # These fields are only available in the lastest version,
-          # for older version don't consider them
-          Map.get(mr, "blocking_discussions_resolved", true) &&
-            !Map.get(mr, "has_conflicts", false)
+        Enum.filter(mrs, fn mr ->
+          if mr["merge_status"] == "checking" do
+            true
+          else
+            # These fields are only available in the lastest version,
+            # for older version don't consider them
+            mr["merge_status"] == "can_be_merged" &&
+              Map.get(mr, "blocking_discussions_resolved", true) &&
+              !Map.get(mr, "has_conflicts", false)
+          end
         end)
         |> Enum.filter(fn mr ->
           Enum.map(mr["labels"], &String.downcase/1)
@@ -155,6 +174,15 @@ defmodule Assistant.Monitor do
                   []
 
                 %{"head_pipeline" => %{"status" => "failed"}} ->
+                  []
+
+                %{"merge_status" => status} when status not in ["checking", "can_be_merged"] ->
+                  []
+
+                %{"merge_status" => "can_be_merged", "blocking_discussions_resolved" => false} ->
+                  []
+
+                %{"merge_status" => "can_be_merged", "has_conflicts" => true} ->
                   []
 
                 _ ->
