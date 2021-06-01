@@ -18,3 +18,28 @@ Note: Gitlab has another feature called [Merge
 Trains](https://docs.gitlab.com/ee/ci/merge_request_pipelines/pipelines_for_merged_results/merge_trains/)
 which solves the same issue. You should use that if you have
 enterprise subscription.
+
+## Installation
+
+The easiest way is to just run the latest [docker image](https://hub.docker.com/r/ananthakumaran/assistant) with the
+required ENV variables.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - env:
+        - name: GITLAB_POLL_INTERVAL_SECONDS
+          value: "30"
+        - name: GITLAB_TOKEN
+          value: xxxx
+        - name: GITLAB_HOST
+          value: https://gitlab.acme.com
+        - name: GITLAB_PROJECTS
+          value: group/project-a,group/sub-group/project-b
+        image: ananthakumaran/assistant
+        name: gitlab-assistant
+```
